@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: iso-8859-2 -*-
-# $Date: 2009-03-08 13:44:17 $, $Revision: 1.1 $
+# $Date: 2009-03-08 23:24:49 $, $Revision: 1.2 $
 #
 # Find duplicated files. Just a list of duplicated is
 # created, no files are deleted, nor moved.
@@ -8,7 +8,7 @@
 # Progam works in 3 steps: first group files of same size,
 # then group them by contents first 4kB, and finally calculate
 # md5 checksum for selected files.
-
+# 
 # Program creates two files: removedups.md5cache and
 # removedups.md5headcache, which store calculated checksum;
 # these files can by reused later, making comparision much
@@ -106,7 +106,7 @@ class Md5Cache:
 
 		if filename in self.cache:
 			cache_mtime, sum = self.cache[filename]
-			if cache_mtime <= file_mtime:
+			if cache_mtime == file_mtime:
 				return sum
 
 		sum = self.calc_sum(filename)
