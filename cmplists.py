@@ -1,3 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: iso-8859-2 -*-
+# $Date: 2009-03-08 13:44:06 $, $Revision: 1.2 $
+#
+# Compare list of strings/directory listings
+# 
+# Author: Wojciech Mu³a
+# e-mail: wojciech_mula@poczta.onet.pl
+# www:    http://wm.ite.pl/
+#
+# License: public domain
+
+
 import sys
 
 help = """
