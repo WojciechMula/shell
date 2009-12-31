@@ -30,16 +30,18 @@ def parse_args(args):
 	from optparse import OptionParser
 
 	parser = OptionParser("usage: %prog [options] list-of-directories")
+	parser.add_option("-s", action="store_true", dest="shell", default=False,
+					  help="create shell script that remove dups")
 	parser.add_option("-o", "--out", metavar="FILE", dest="log_file",
 	                  help="log file name; will not overwrite existing file")
 	parser.add_option("--sep", dest="separator", default="\n\t",
 	                  help="seperator for duplicated entries; use \\n for newline, \\t for tab [default: \\n\\t]")
-	parser.add_option("-s", "--sort", action="store_true", dest="sort", default=False,
+	parser.add_option("--sort", action="store_true", dest="sort", default=False,
 	                  help="sort filenames in log")
 	parser.add_option("-e", "--exclude", action="append", dest="exclude",
 	                  help="exclude given files or patterns; you can pass as many options as you need")
-	parser.add_option("--force", action="store_true", dest="overwrite", default=False,
-	                  help="force overwrite log file")
+	parser.add_option("--keep", action="store_false", dest="overwrite", default=True,
+	                  help="do not overwrite log file if exists")
 	parser.add_option("--no-recursive", dest="no_recursive", action="store_true", default=False,
 	                  help="do not go deeper")
 	parser.add_option("--traceback", dest="print_traceback", action="store_true", default=False,
@@ -53,7 +55,7 @@ def parse_args(args):
 		parser.error("-o parameter is required")
 		raise SystemExit
 	elif exists(options.log_file) and not options.overwrite:
-		parser.error("File %s already exists. Use --force to overwrite." % options.log_file)
+		parser.error("File %s already exists." % options.log_file)
 		raise SystemExit
 
 	if options.exclude is None:
@@ -325,10 +327,17 @@ def main():
 			if options.sort:
 				file_list.sort()
 
-			log.write("\n")
-			log.write(quote(file_list[0]))
-			for file in file_list[1:]:
-				log.write(options.separator + quote(file))
+			if options.shell:
+				f0 = quote(file_list[0])
+				for fi in file_list[1:]:
+					assert f0 != fi
+					log.write("cmp %s %s && rm %s\n" % (f0, fi, fi))
+			else:
+				log.write(quote(file_list[0]))
+				for file in file_list[1:]:
+					log.write(options.separator + quote(file))
+				else:
+					log.write("\n")
 
 		log.close()
 		status.write("\n")
