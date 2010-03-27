@@ -185,17 +185,17 @@ class CompareShell(CompareBase):
 		if result == CompareBase.SIZEDIFF:
 			if kind == 'f':
 				self.cpfiles.append(
-					'cp -u "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
+					'cp -f --preserve=all "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
 				)
 		elif result in [CompareBase.YOUNGER, CompareBase.OLDER]:
 			if kind == 'f':
 				self.cpfiles.append(
-					'cp --preserve=all "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
+					'cp -f --preserve=all "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
 				)
 		elif result == CompareBase.MISSING2:
 			if kind == 'f':
 				self.cpfiles.append(
-					'cp "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
+					'cp --preserve=all "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
 				)
 			elif kind == 'd':
 				self.mkdirs.append(
@@ -204,11 +204,11 @@ class CompareShell(CompareBase):
 		elif result == CompareBase.MISSING1:
 			if kind == 'f':
 				self.rmfiles.append(
-					'rm "%s"' % join(self.dir2.rootdir, path)
+					'rm -f "%s"' % join(self.dir2.rootdir, path)
 				)
 			elif kind == 'd':
 				self.rmdirs.append(
-					'rmdir -p "%s"' % join(self.dir2.rootdir, path)
+					'rmdir "%s"' % join(self.dir2.rootdir, path)
 				)
 		#
 	
