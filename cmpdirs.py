@@ -185,15 +185,24 @@ class CompareShell(CompareBase):
 		if result == CompareBase.SIZEDIFF:
 			if kind == 'f':
 				self.cpfiles.append(
+					'echo copy %s' % path
+				)
+				self.cpfiles.append(
 					'cp -f --preserve=all "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
 				)
 		elif result in [CompareBase.YOUNGER, CompareBase.OLDER]:
 			if kind == 'f':
 				self.cpfiles.append(
+					'echo "copy %s"' % path
+				)
+				self.cpfiles.append(
 					'cp -f --preserve=all "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
 				)
 		elif result == CompareBase.MISSING2:
 			if kind == 'f':
+				self.cpfiles.append(
+					'echo copy %s' % path
+				)
 				self.cpfiles.append(
 					'cp --preserve=all "%s" "%s"' % (join(self.dir1.rootdir, path), join(self.dir2.rootdir, path))
 				)
@@ -203,6 +212,9 @@ class CompareShell(CompareBase):
 				)
 		elif result == CompareBase.MISSING1:
 			if kind == 'f':
+				self.rmfiles.append(
+					'echo del %s' % path
+				)
 				self.rmfiles.append(
 					'rm -f "%s"' % join(self.dir2.rootdir, path)
 				)
