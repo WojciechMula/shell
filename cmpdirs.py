@@ -2,10 +2,11 @@
 # -*- coding: iso-8859-2 -*-
 
 #	Compare two directories, similar to diff
-#	
-#	Prints textual information and shell script that does mirror
+#
+#	Prints textual information or shell script that does mirror
 #
 #	Wojciech Muła, 2010-01-08
+#	$Id$
 
 import sys
 import os
@@ -23,16 +24,12 @@ def walk_tree(rootdir, visitdir=None, onfile=None):
 					del dirnames[i]
 				else:
 					i += 1
-			#
-		#
-
 		if onfile:
 			for dirname in dirnames:
 				onfile(join(dirpath, dirname), 'd')
 
 			for filename in filenames:
 				onfile(join(dirpath, filename), 'f')
-		#
 	#
 
 
@@ -93,7 +90,7 @@ class CompareBase(object):
 
 		self.on_compare_start()
 
-		for path, (id, mtime, size, kind) in self.dir1.files.iteritems():
+		for path, (id, mtime, size, kind) in self.dir1.files.items():
 			if kind == 'd': # directory
 				if path not in self.dir2.files:
 					on_compare(path, kind, CompareBase.MISSING2)
@@ -116,7 +113,7 @@ class CompareBase(object):
 				raise AssertionError("Unknown kind of path ('%s')" % kind)
 		#
 		
-		for path, (_, _, _, kind) in self.dir2.files.iteritems():
+		for path, (_, _, _, kind) in self.dir2.files.items():
 			if path not in self.dir1.files:
 				on_compare(path, kind, CompareBase.MISSING1)
 		#
@@ -132,25 +129,28 @@ class CompareDescription(CompareBase):
 		if result == CompareBase.SAME:
 			return
 
+		L = []
+
 		if kind == 'd':
-			print "directory",
+			L.append("directory")
 		elif kind == 'f':
-			print "file",
+			L.append("file")
 		else:
 			raise AssertionError("Unknown kind of path ('%s')" % kind)
 
-		print path,
+		L.append(path)
 		if result == CompareBase.YOUNGER:
-			print "is younger"
+			L.append("is younger")
 		elif result == CompareBase.OLDER:
-			print "is older"
+			L.append("is older")
 		elif result == CompareBase.SIZEDIFF:
-			print "has different size"
+			L.append("has different size")
 		elif result == CompareBase.MISSING2:
-			print "not exists in second dir"
+			L.append("not exists in second dir")
 		elif result == CompareBase.MISSING1:
-			print "not exists in first dir"
-	#
+			L.append("not exists in first dir")
+
+		print(" ".join(L))
 
 
 class CompareShell(CompareBase):
@@ -166,11 +166,17 @@ class CompareShell(CompareBase):
 
 
 	def on_compare_end(self):
-		print "\n".join(self.mkdirs)
-		print "\n".join(self.cpfiles)
+		if self.mkdirs:
+			print("\n".join(self.mkdirs))
 
-		print "\n".join(self.rmfiles)
-		print "\n".join(self.rmdirs)
+		if self.cpfiles:
+			print("\n".join(self.cpfiles))
+
+		if self.rmfiles:
+			print("\n".join(self.rmfiles))
+
+		if self.rmdirs:
+			print("\n".join(self.rmdirs))
 
 
 	def on_compare(self, path, kind, result):
@@ -224,22 +230,29 @@ class CompareShell(CompareBase):
 				)
 		#
 	
-def help():
-	print "usage: program M directory1 directory2"
-	print
-	print "M is method of compare result presentation:"
-	print " d - print simple description"
-	print " s - print shell script that makes mirrof of dir1 in dir2"
-	sys.exit()
+def help(ret=0):
+	print(
+		"""
+		usage: program M directory1 directory2
+
+		 M is method of compare result presentation:"
+		 d - print simple description"
+		 s - print shell script that makes mirrof of dir1 in dir2"
+		"""
+	)
+	sys.exit(ret)
 
 
 if __name__ == '__main__':
-	if len(sys.argv) != 4 or (len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']):
+	if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
 		help()
+
+	if len(sys.argv) != 4:
+		help(1)
 
 	M = sys.argv[1]
 	if M not in ['d', 's']:
-		help()
+		help(2)
 
 	dir1 = sys.argv[2]
 	dir2 = sys.argv[3]
