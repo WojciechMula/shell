@@ -39,6 +39,10 @@ def parse_args(args):
 	                  help="seperator for duplicated entries; use \\n for newline, \\t for tab [default: \\n\\t]")
 	parser.add_option("--sort", action="store_true", dest="sort", default=False,
 	                  help="sort filenames in log")
+	parser.add_option("-q", "--quote", action="store_true", dest="quote", default=False,
+	                  help="quote paths with \" if contain space")
+	parser.add_option("-a", "--abs-path", action="store_true", dest="abspath", default=False,
+	                  help="save absolute paths")
 	parser.add_option("-e", "--exclude", action="append", dest="exclude",
 	                  help="exclude given files or patterns; you can pass as many options as you need")
 	parser.add_option("--keep", action="store_false", dest="overwrite", default=True,
@@ -243,7 +247,10 @@ def main():
 					path = join(root, file)
 					if not islink(path):	# do not consider links
 						try:
-							d[getsize(path)] = path
+							if options.abspath:
+								d[getsize(path)] = abspath(path)
+							else:
+								d[getsize(path)] = path
 						except:
 							printerror()
 
@@ -314,11 +321,16 @@ def main():
 
 		log = open(options.log_file, "wt")
 
-		def quote(string):
-			if " " in string:
-				return '"' + string + '"'
-			else:
+		if options.quote:
+			def quote(string):
+				if " " in string:
+					return '"' + string + '"'
+				else:
+					return string
+		else:
+			def quote(string):
 				return string
+
 
 		for file_list in duplicates:
 			if options.sort:
