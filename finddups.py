@@ -33,8 +33,8 @@ def parse_args(args):
 	parser = OptionParser("usage: %prog [options] list-of-directories")
 	parser.add_option("-s", action="store_true", dest="shell", default=False,
 					  help="create shell script that remove dups")
-	parser.add_option("-o", "--out", metavar="FILE", dest="log_file",
-	                  help="log file name; will not overwrite existing file")
+	parser.add_option("-o", "--out", metavar="FILE", dest="log_file", default=None,
+	                  help="log file name, if ommited stdout is user")
 	parser.add_option("--sep", dest="separator", default="\n\t",
 	                  help="seperator for duplicated entries; use \\n for newline, \\t for tab [default: \\n\\t]")
 	parser.add_option("--sort", action="store_true", dest="sort", default=False,
@@ -43,6 +43,8 @@ def parse_args(args):
 	                  help="quote paths with \" if contain space")
 	parser.add_option("-a", "--abs-path", action="store_true", dest="abspath", default=False,
 	                  help="save absolute paths")
+	parser.add_option("--no-cache", action="store_false", dest="use_cache", default=True,
+					  help="do not create any temporary files for cache")
 	parser.add_option("-e", "--exclude", action="append", dest="exclude",
 	                  help="exclude given files or patterns; you can pass as many options as you need")
 	parser.add_option("--keep", action="store_false", dest="overwrite", default=True,
@@ -56,10 +58,7 @@ def parse_args(args):
 	(options, rest) = parser.parse_args(args)
 	
 	# check options
-	if options.log_file is None:
-		parser.error("-o parameter is required")
-		raise SystemExit
-	elif exists(options.log_file) and not options.overwrite:
+	if options.log_file is not None and exists(options.log_file) and not options.overwrite:
 		parser.error("File %s already exists." % options.log_file)
 		raise SystemExit
 
@@ -163,8 +162,9 @@ def main():
 			self.last_len  = 0
 			self.max_width = max_width
 			self.progress  = 0.0
+			self.file = sys.stderr
 
-			if sys.stdout.isatty():
+			if self.file.isatty():
 				self.write = self.__print_stdout
 			else:
 				self.write = self.__print_dummy
@@ -185,18 +185,18 @@ def main():
 
 			n = len(out)
 			if n >= self.last_len:
-				sys.stdout.write(out + "\r")
+				sys.stderr.write(out + "\r")
 			else:
-				sys.stdout.write(out + (" "*(self.last_len - n)) + "\r")
+				sys.stderr.write(out + (" "*(self.last_len - n)) + "\r")
 
-			sys.stdout.flush()
+			sys.stderr.flush()
 			self.last_len = n
 
 		def __print_dummy(self, string, path=""):
 			pass
 
 		def error(self, string):
-			sys.stdout.write(string + "\n")
+			sys.stderr.write(string + "\n")
 	
 	status = Status()
 
@@ -210,18 +210,19 @@ def main():
 
 	# load md5cache
 	md5cache = Md5Cache()
-	try:
-		md5cache.load("removedups.md5cache")
-	except:
-		status.error("Can't load md5cache file")
-		printerror()
-
 	md5headcache = Md5ShortCache()
-	try:
-		md5headcache.load("removedups.md5headcache")
-	except:
-		status.error("Can't load md5headcache file")
-		printerror()
+	if options.use_cache:
+		try:
+			md5cache.load("removedups.md5cache")
+		except:
+			status.error("Can't load md5cache file")
+			printerror()
+		
+		try:
+			md5headcache.load("removedups.md5headcache")
+		except:
+			status.error("Can't load md5headcache file")
+			printerror()
 
 
 	try:
@@ -247,10 +248,9 @@ def main():
 					path = join(root, file)
 					if not islink(path):	# do not consider links
 						try:
-							if options.abspath:
-								d[getsize(path)] = abspath(path)
-							else:
-								d[getsize(path)] = path
+							size = getsize(path)
+							if size > 0:
+								d[size] = abspath(path) if options.abspath else path
 						except:
 							printerror()
 
@@ -319,7 +319,10 @@ def main():
 
 		unique, duplicates = group_files(d)
 
-		log = open(options.log_file, "wt")
+		if options.log_file is not None:
+			log = open(options.log_file, "wt")
+		else:
+			log = sys.stdout
 
 		if options.quote:
 			def quote(string):
@@ -354,17 +357,18 @@ def main():
 	except:
 		printerror()
 
-	try:
-		md5cache.save("removedups.md5cache")
-	except:
-		status.error("Can't save md5cache file")
-		printerror()
-		
-	try:
-		md5headcache.save("removedups.md5headcache")
-	except:
-		status.error("Can't save md5headcache file")
-		printerror()
+	if options.use_cache:
+		try:
+			md5cache.save("removedups.md5cache")
+		except:
+			status.error("Can't save md5cache file")
+			printerror()
+			
+		try:
+			md5headcache.save("removedups.md5headcache")
+		except:
+			status.error("Can't save md5headcache file")
+			printerror()
 
 
 if __name__ == '__main__':
