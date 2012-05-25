@@ -47,6 +47,8 @@ def parse_args(args):
 					  help="do not create any temporary files for cache")
 	parser.add_option("-e", "--exclude", action="append", dest="exclude",
 	                  help="exclude given files or patterns; you can pass as many options as you need")
+	parser.add_option("-Q", "--quiet", action="store_true", dest="quiet", default=False,
+	                  help="be quiet")
 	parser.add_option("--keep", action="store_false", dest="overwrite", default=True,
 	                  help="do not overwrite log file if exists")
 	parser.add_option("--no-recursive", dest="no_recursive", action="store_true", default=False,
@@ -158,13 +160,13 @@ def main():
 
 	# set up print-status function
 	class Status:
-		def __init__(self, max_width=72):
+		def __init__(self, quiet, max_width=72):
 			self.last_len  = 0
 			self.max_width = max_width
 			self.progress  = 0.0
 			self.file = sys.stderr
 
-			if self.file.isatty():
+			if self.file.isatty() and not quiet:
 				self.write = self.__print_stdout
 			else:
 				self.write = self.__print_dummy
@@ -198,7 +200,7 @@ def main():
 		def error(self, string):
 			sys.stderr.write(string + "\n")
 	
-	status = Status()
+	status = Status(options.quiet)
 
 	def printerror():
 		if options.print_traceback:
@@ -256,6 +258,10 @@ def main():
 
 				if options.no_recursive:	# do not go deeper
 					del dirs[:]
+				elif options.exclude:
+					newdirs = [dir for dir in dirs if match(dir)]
+					del dirs[:]
+					dirs.extend(newdirs)
 
 
 		def group_by_first4kb(file_list):
@@ -359,16 +365,19 @@ def main():
 
 	if options.use_cache:
 		try:
-			md5cache.save("removedups.md5cache")
+			md5cache.save("tmp1")
 		except:
 			status.error("Can't save md5cache file")
 			printerror()
 			
 		try:
-			md5headcache.save("removedups.md5headcache")
+			md5headcache.save("tmp2")
 		except:
 			status.error("Can't save md5headcache file")
 			printerror()
+			
+		os.rename("tmp1", "removedups.md5cache");
+		os.rename("tmp2", "removedups.md5headcache");
 
 
 if __name__ == '__main__':
