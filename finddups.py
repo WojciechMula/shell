@@ -216,12 +216,16 @@ def main():
 	if options.use_cache:
 		try:
 			md5cache.load("removedups.md5cache")
+		except KeyboardInterrupt:
+			raise
 		except:
 			status.error("Can't load md5cache file")
 			printerror()
 		
 		try:
 			md5headcache.load("removedups.md5headcache")
+		except KeyboardInterrupt:
+			raise
 		except:
 			status.error("Can't load md5headcache file")
 			printerror()
@@ -253,6 +257,8 @@ def main():
 							size = getsize(path)
 							if size > 0:
 								d[size] = abspath(path) if options.abspath else path
+						except KeyboardInterrupt:
+							raise
 						except:
 							printerror()
 
@@ -273,6 +279,8 @@ def main():
 					head = md5headcache.get_sum(file)
 
 					dict[head] = file
+				except KeyboardInterrupt:
+					raise
 				except:
 					printerror()
 
@@ -287,6 +295,8 @@ def main():
 				try:
 					sum = md5cache.get_sum(file)
 					dict[sum] = file
+				except KeyboardInterrupt:
+					raise
 				except:
 					printerror()
 
@@ -360,25 +370,21 @@ def main():
 		log.close()
 		status.write("\n")
 
+	except KeyboardInterrupt:
+		raise
 	except:
 		printerror()
 
 	if options.use_cache:
 		try:
 			md5cache.save("tmp1")
-		except:
-			status.error("Can't save md5cache file")
-			printerror()
-			
-		try:
 			md5headcache.save("tmp2")
+			os.rename("tmp1", "removedups.md5cache");
+			os.rename("tmp2", "removedups.md5headcache");
 		except:
-			status.error("Can't save md5headcache file")
+			status.error("Can't save cache file(s)")
 			printerror()
 			
-		os.rename("tmp1", "removedups.md5cache");
-		os.rename("tmp2", "removedups.md5headcache");
-
 
 if __name__ == '__main__':
 	main()
