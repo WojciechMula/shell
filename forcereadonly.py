@@ -1,4 +1,4 @@
-#!/bin/evn python
+#!/usr/bin/env python
 
 import os
 import stat
