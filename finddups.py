@@ -58,7 +58,7 @@ def parse_args(args):
 
 	# parse
 	(options, rest) = parser.parse_args(args)
-	
+
 	# check options
 	if options.log_file is not None and exists(options.log_file) and not options.overwrite:
 		parser.error("File %s already exists." % options.log_file)
