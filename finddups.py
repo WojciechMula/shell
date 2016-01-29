@@ -27,366 +27,366 @@ from os.path import abspath, dirname, normpath, join
 from hashlib import md5
 
 def parse_args(args):
-	# define options
-	from optparse import OptionParser
+    # define options
+    from optparse import OptionParser
 
-	parser = OptionParser("usage: %prog [options] list-of-directories")
-	parser.add_option("-s", action="store_true", dest="shell", default=False,
-					  help="create shell script that remove dups")
-	parser.add_option("-o", "--out", metavar="FILE", dest="log_file", default=None,
-	                  help="log file name, if ommited stdout is user")
-	parser.add_option("--sep", dest="separator", default="\n\t",
-	                  help="seperator for duplicated entries; use \\n for newline, \\t for tab [default: \\n\\t]")
-	parser.add_option("--sort", action="store_true", dest="sort", default=False,
-	                  help="sort filenames in log")
-	parser.add_option("-q", "--quote", action="store_true", dest="quote", default=False,
-	                  help="quote paths with \" if contain space")
-	parser.add_option("-a", "--abs-path", action="store_true", dest="abspath", default=False,
-	                  help="save absolute paths")
-	parser.add_option("--no-cache", action="store_false", dest="use_cache", default=True,
-					  help="do not create any temporary files for cache")
-	parser.add_option("-e", "--exclude", action="append", dest="exclude",
-	                  help="exclude given files or patterns; you can pass as many options as you need")
-	parser.add_option("-Q", "--quiet", action="store_true", dest="quiet", default=False,
-	                  help="be quiet")
-	parser.add_option("--keep", action="store_false", dest="overwrite", default=True,
-	                  help="do not overwrite log file if exists")
-	parser.add_option("--no-recursive", dest="no_recursive", action="store_true", default=False,
-	                  help="do not go deeper")
-	parser.add_option("--traceback", dest="print_traceback", action="store_true", default=False,
-	                  help="in case of error print full traceback, that can help identify an error")
+    parser = OptionParser("usage: %prog [options] list-of-directories")
+    parser.add_option("-s", action="store_true", dest="shell", default=False,
+                      help="create shell script that remove dups")
+    parser.add_option("-o", "--out", metavar="FILE", dest="log_file", default=None,
+                      help="log file name, if ommited stdout is user")
+    parser.add_option("--sep", dest="separator", default="\n\t",
+                      help="seperator for duplicated entries; use \\n for newline, \\t for tab [default: \\n\\t]")
+    parser.add_option("--sort", action="store_true", dest="sort", default=False,
+                      help="sort filenames in log")
+    parser.add_option("-q", "--quote", action="store_true", dest="quote", default=False,
+                      help="quote paths with \" if contain space")
+    parser.add_option("-a", "--abs-path", action="store_true", dest="abspath", default=False,
+                      help="save absolute paths")
+    parser.add_option("--no-cache", action="store_false", dest="use_cache", default=True,
+                      help="do not create any temporary files for cache")
+    parser.add_option("-e", "--exclude", action="append", dest="exclude",
+                      help="exclude given files or patterns; you can pass as many options as you need")
+    parser.add_option("-Q", "--quiet", action="store_true", dest="quiet", default=False,
+                      help="be quiet")
+    parser.add_option("--keep", action="store_false", dest="overwrite", default=True,
+                      help="do not overwrite log file if exists")
+    parser.add_option("--no-recursive", dest="no_recursive", action="store_true", default=False,
+                      help="do not go deeper")
+    parser.add_option("--traceback", dest="print_traceback", action="store_true", default=False,
+                      help="in case of error print full traceback, that can help identify an error")
 
-	# parse
-	(options, rest) = parser.parse_args(args)
+    # parse
+    (options, rest) = parser.parse_args(args)
 
-	# check options
-	if options.log_file is not None and exists(options.log_file) and not options.overwrite:
-		parser.error("File %s already exists." % options.log_file)
-		raise SystemExit
+    # check options
+    if options.log_file is not None and exists(options.log_file) and not options.overwrite:
+        parser.error("File %s already exists." % options.log_file)
+        raise SystemExit
 
-	if options.exclude is None:
-		options.exclude = []
+    if options.exclude is None:
+        options.exclude = []
 
-	options.separator = options.separator.replace("\\n", '\n').replace("\\t", '\t')
+    options.separator = options.separator.replace("\\n", '\n').replace("\\t", '\t')
 
-	tmp = set()
-	directories = []
-	for dir in rest[1:]:
-		path = normpath(abspath(dir))
-		if path in tmp:
-			continue
+    tmp = set()
+    directories = []
+    for dir in rest[1:]:
+        path = normpath(abspath(dir))
+        if path in tmp:
+            continue
 
-		if not exists(path):
-			parser.error("'%s' doesn't exists" % dir)
-		elif not isdir(path):
-			parser.error("'%s' is not a directory" % dir)
-		else:
-			directories.append(dir)
-	      
-	if not directories:
-		parser.print_help()
-		raise SystemExit
-	
-	return (options, directories)
+        if not exists(path):
+            parser.error("'%s' doesn't exists" % dir)
+        elif not isdir(path):
+            parser.error("'%s' is not a directory" % dir)
+        else:
+            directories.append(dir)
+          
+    if not directories:
+        parser.print_help()
+        raise SystemExit
+    
+    return (options, directories)
 
 
 class Dict(dict):
-	"Ocaml-like dict"
-	def __setitem__(self, key, value):
-		try:
-			L = super(Dict, self).__getitem__(key)
-		except KeyError:
-			L = []
-			super(Dict, self).__setitem__(key, L)
+    "Ocaml-like dict"
+    def __setitem__(self, key, value):
+        try:
+            L = super(Dict, self).__getitem__(key)
+        except KeyError:
+            L = []
+            super(Dict, self).__setitem__(key, L)
 
-		L.append(value)
+        L.append(value)
 
 
 class Md5Cache:
-	"cache for md5 sums of files; md5 sum is recalculated when modification time changed"
-	def __init__(self):
-		self.cache = {}		# path => (mod. time, md5sum)
+    "cache for md5 sums of files; md5 sum is recalculated when modification time changed"
+    def __init__(self):
+        self.cache = {}     # path => (mod. time, md5sum)
 
-	def get_sum(self, filename):
-		filename   = abspath(filename)
+    def get_sum(self, filename):
+        filename   = abspath(filename)
 
-		file_mtime = getmtime(filename)
+        file_mtime = getmtime(filename)
 
-		if filename in self.cache:
-			cache_mtime, sum = self.cache[filename]
-			if cache_mtime == file_mtime:
-				return sum
+        if filename in self.cache:
+            cache_mtime, sum = self.cache[filename]
+            if cache_mtime == file_mtime:
+                return sum
 
-		sum = self.calc_sum(filename)
-		self.cache[filename] = (file_mtime, sum)
-		return sum
-		
-	def calc_sum(self, filename):
-		file    = open(filename, 'rb')
-		bufsize = 8192
-		sum     = md5()
-		while True:
-			buf = file.read(bufsize)
-			if not buf:
-				break
-			sum.update(buf)
+        sum = self.calc_sum(filename)
+        self.cache[filename] = (file_mtime, sum)
+        return sum
+        
+    def calc_sum(self, filename):
+        file    = open(filename, 'rb')
+        bufsize = 8192
+        sum     = md5()
+        while True:
+            buf = file.read(bufsize)
+            if not buf:
+                break
+            sum.update(buf)
 
-		file.close()
-		return sum.digest()
+        file.close()
+        return sum.digest()
 
-	def save(self, filename):
-		import pickle
-		print("dumping to", filename)
-		pickle.dump(self.cache, open(filename, "wb"), pickle.HIGHEST_PROTOCOL)
-	
-	def load(self, filename):
-		import pickle
-		self.cache = pickle.load(open(filename, "rb"))
+    def save(self, filename):
+        import pickle
+        print("dumping to", filename)
+        pickle.dump(self.cache, open(filename, "wb"), pickle.HIGHEST_PROTOCOL)
+    
+    def load(self, filename):
+        import pickle
+        self.cache = pickle.load(open(filename, "rb"))
 
 
 class Md5ShortCache(Md5Cache):
-	"cache for md5 sums of first 4kB of files"
-	def calc_sum(self, filename):
-		file    = open(filename, 'rb')
-		bufsize = 4096
-		sum     = md5()
-		sum.update(file.read(bufsize))
-		file.close()
-		return sum.digest()
+    "cache for md5 sums of first 4kB of files"
+    def calc_sum(self, filename):
+        file    = open(filename, 'rb')
+        bufsize = 4096
+        sum     = md5()
+        sum.update(file.read(bufsize))
+        file.close()
+        return sum.digest()
 
 
 def main():
-	options, directories = parse_args(sys.argv)
+    options, directories = parse_args(sys.argv)
 
-	# set up print-status function
-	class Status:
-		def __init__(self, quiet, max_width=72):
-			self.last_len  = 0
-			self.max_width = max_width
-			self.progress  = 0.0
-			self.file = sys.stderr
+    # set up print-status function
+    class Status:
+        def __init__(self, quiet, max_width=72):
+            self.last_len  = 0
+            self.max_width = max_width
+            self.progress  = 0.0
+            self.file = sys.stderr
 
-			if self.file.isatty() and not quiet:
-				self.write = self.__print_stdout
-			else:
-				self.write = self.__print_dummy
+            if self.file.isatty() and not quiet:
+                self.write = self.__print_stdout
+            else:
+                self.write = self.__print_dummy
 
-		def __print_stdout(self, string, path=""):
-			string = "%4.1f %s" % (100.0 * self.progress, string)
-			n = len(string)
-			k = len(path)
+        def __print_stdout(self, string, path=""):
+            string = "%4.1f %s" % (100.0 * self.progress, string)
+            n = len(string)
+            k = len(path)
 
-			if n + k > self.max_width:
-				if n > self.max_width:
-					out = string[:self.max_width]
-				else:
-					m = k-(self.max_width - n - 3)
-					out = string + "..." + path[m:]
-			else:
-				out = string + path
+            if n + k > self.max_width:
+                if n > self.max_width:
+                    out = string[:self.max_width]
+                else:
+                    m = k-(self.max_width - n - 3)
+                    out = string + "..." + path[m:]
+            else:
+                out = string + path
 
-			n = len(out)
-			if n >= self.last_len:
-				sys.stderr.write(out + "\r")
-			else:
-				sys.stderr.write(out + (" "*(self.last_len - n)) + "\r")
+            n = len(out)
+            if n >= self.last_len:
+                sys.stderr.write(out + "\r")
+            else:
+                sys.stderr.write(out + (" "*(self.last_len - n)) + "\r")
 
-			sys.stderr.flush()
-			self.last_len = n
+            sys.stderr.flush()
+            self.last_len = n
 
-		def __print_dummy(self, string, path=""):
-			pass
+        def __print_dummy(self, string, path=""):
+            pass
 
-		def error(self, string):
-			sys.stderr.write(string + "\n")
-	
-	status = Status(options.quiet)
+        def error(self, string):
+            sys.stderr.write(string + "\n")
+    
+    status = Status(options.quiet)
 
-	def printerror():
-		if options.print_traceback:
-			import traceback
-			traceback.print_exc()
-		else:
-			info = sys.exc_info()
-			status.error("%s: %s" % (info[0].__name__, info[1]))
+    def printerror():
+        if options.print_traceback:
+            import traceback
+            traceback.print_exc()
+        else:
+            info = sys.exc_info()
+            status.error("%s: %s" % (info[0].__name__, info[1]))
 
-	# load md5cache
-	md5cache = Md5Cache()
-	md5headcache = Md5ShortCache()
-	if options.use_cache:
-		try:
-			md5cache.load("removedups.md5cache")
-		except KeyboardInterrupt:
-			raise
-		except:
-			status.error("Can't load md5cache file")
-			printerror()
-		
-		try:
-			md5headcache.load("removedups.md5headcache")
-		except KeyboardInterrupt:
-			raise
-		except:
-			status.error("Can't load md5headcache file")
-			printerror()
-
-
-	try:
-		# Scanning directories
-
-		def match(filename):
-			from fnmatch import fnmatch
-
-			for pattern in options.exclude:
-				if fnmatch(filename, pattern):
-					return False
-			else:
-				return True
-
-		d = Dict()
-		for directory in directories:
-			for root, dirs, files in os.walk(directory):
-				status.write("Scanning: ", root)
-				for file in files:
-					if not match(file):		# exclude files
-						continue
-
-					path = join(root, file)
-					if not islink(path):	# do not consider links
-						try:
-							size = getsize(path)
-							if size > 0:
-								d[size] = abspath(path) if options.abspath else path
-						except KeyboardInterrupt:
-							raise
-						except:
-							printerror()
-
-				if options.no_recursive:	# do not go deeper
-					del dirs[:]
-				elif options.exclude:
-					newdirs = [dir for dir in dirs if match(dir)]
-					del dirs[:]
-					dirs.extend(newdirs)
+    # load md5cache
+    md5cache = Md5Cache()
+    md5headcache = Md5ShortCache()
+    if options.use_cache:
+        try:
+            md5cache.load("removedups.md5cache")
+        except KeyboardInterrupt:
+            raise
+        except:
+            status.error("Can't load md5cache file")
+            printerror()
+        
+        try:
+            md5headcache.load("removedups.md5headcache")
+        except KeyboardInterrupt:
+            raise
+        except:
+            status.error("Can't load md5headcache file")
+            printerror()
 
 
-		def group_by_first4kb(file_list):
-			dict = Dict()
+    try:
+        # Scanning directories
 
-			for file in file_list:
-				status.write("read head of ", file)
-				try:
-					head = md5headcache.get_sum(file)
+        def match(filename):
+            from fnmatch import fnmatch
 
-					dict[head] = file
-				except KeyboardInterrupt:
-					raise
-				except:
-					printerror()
+            for pattern in options.exclude:
+                if fnmatch(filename, pattern):
+                    return False
+            else:
+                return True
 
-			return dict
+        d = Dict()
+        for directory in directories:
+            for root, dirs, files in os.walk(directory):
+                status.write("Scanning: ", root)
+                for file in files:
+                    if not match(file):     # exclude files
+                        continue
 
+                    path = join(root, file)
+                    if not islink(path):    # do not consider links
+                        try:
+                            size = getsize(path)
+                            if size > 0:
+                                d[size] = abspath(path) if options.abspath else path
+                        except KeyboardInterrupt:
+                            raise
+                        except:
+                            printerror()
 
-		def group_by_md5sum(file_list):
-			dict = Dict()
-
-			for file in file_list:
-				status.write("calc. MD5 of ", file)
-				try:
-					sum = md5cache.get_sum(file)
-					dict[sum] = file
-				except KeyboardInterrupt:
-					raise
-				except:
-					printerror()
-
-			return dict
-
-
-		def group_files(dict):
-			duplicates = []
-			unique     = []
-
-			total = float(len(dict))
-			for curr, (size, files) in enumerate(iter(dict.items())):
-				if size == 0:
-					continue
-
-				status.progress = curr/total
-				if len(files) == 1:
-					unique.append(files[0])
-					continue
-
-				dict1 = group_by_first4kb(files)
-				for _, files1 in dict1.items():
-					if len(files) == 1:
-						unique.append(files1[0])
-						continue
-
-					dict2 = group_by_md5sum(files1)
-					for _, files2 in dict2.items():
-						if len(files2) > 1:
-							duplicates.append(files2)
-						else:
-							unique.append(files2[0])
-					
-			return (unique, duplicates)
+                if options.no_recursive:    # do not go deeper
+                    del dirs[:]
+                elif options.exclude:
+                    newdirs = [dir for dir in dirs if match(dir)]
+                    del dirs[:]
+                    dirs.extend(newdirs)
 
 
-		unique, duplicates = group_files(d)
+        def group_by_first4kb(file_list):
+            dict = Dict()
 
-		if options.log_file is not None:
-			log = open(options.log_file, "wt")
-		else:
-			log = sys.stdout
+            for file in file_list:
+                status.write("read head of ", file)
+                try:
+                    head = md5headcache.get_sum(file)
 
-		if options.quote:
-			def quote(string):
-				if " " in string:
-					return '"' + string + '"'
-				else:
-					return string
-		else:
-			def quote(string):
-				return string
+                    dict[head] = file
+                except KeyboardInterrupt:
+                    raise
+                except:
+                    printerror()
+
+            return dict
 
 
-		for file_list in duplicates:
-			if options.sort:
-				file_list.sort()
+        def group_by_md5sum(file_list):
+            dict = Dict()
 
-			if options.shell:
-				f0 = quote(file_list[0])
-				for fi in file_list[1:]:
-					assert f0 != fi
-					log.write("cmp %s %s && rm %s\n" % (f0, fi, fi))
-			else:
-				log.write(quote(file_list[0]))
-				for file in file_list[1:]:
-					log.write(options.separator + quote(file))
-				else:
-					log.write("\n")
+            for file in file_list:
+                status.write("calc. MD5 of ", file)
+                try:
+                    sum = md5cache.get_sum(file)
+                    dict[sum] = file
+                except KeyboardInterrupt:
+                    raise
+                except:
+                    printerror()
 
-		log.close()
-		status.write("\n")
+            return dict
 
-	except KeyboardInterrupt:
-		raise
-	except:
-		printerror()
 
-	if options.use_cache:
-		try:
-			md5cache.save("tmp1")
-			md5headcache.save("tmp2")
-			os.rename("tmp1", "removedups.md5cache");
-			os.rename("tmp2", "removedups.md5headcache");
-		except:
-			status.error("Can't save cache file(s)")
-			printerror()
-			
+        def group_files(dict):
+            duplicates = []
+            unique     = []
+
+            total = float(len(dict))
+            for curr, (size, files) in enumerate(iter(dict.items())):
+                if size == 0:
+                    continue
+
+                status.progress = curr/total
+                if len(files) == 1:
+                    unique.append(files[0])
+                    continue
+
+                dict1 = group_by_first4kb(files)
+                for _, files1 in dict1.items():
+                    if len(files) == 1:
+                        unique.append(files1[0])
+                        continue
+
+                    dict2 = group_by_md5sum(files1)
+                    for _, files2 in dict2.items():
+                        if len(files2) > 1:
+                            duplicates.append(files2)
+                        else:
+                            unique.append(files2[0])
+                    
+            return (unique, duplicates)
+
+
+        unique, duplicates = group_files(d)
+
+        if options.log_file is not None:
+            log = open(options.log_file, "wt")
+        else:
+            log = sys.stdout
+
+        if options.quote:
+            def quote(string):
+                if " " in string:
+                    return '"' + string + '"'
+                else:
+                    return string
+        else:
+            def quote(string):
+                return string
+
+
+        for file_list in duplicates:
+            if options.sort:
+                file_list.sort()
+
+            if options.shell:
+                f0 = quote(file_list[0])
+                for fi in file_list[1:]:
+                    assert f0 != fi
+                    log.write("cmp %s %s && rm %s\n" % (f0, fi, fi))
+            else:
+                log.write(quote(file_list[0]))
+                for file in file_list[1:]:
+                    log.write(options.separator + quote(file))
+                else:
+                    log.write("\n")
+
+        log.close()
+        status.write("\n")
+
+    except KeyboardInterrupt:
+        raise
+    except:
+        printerror()
+
+    if options.use_cache:
+        try:
+            md5cache.save("tmp1")
+            md5headcache.save("tmp2")
+            os.rename("tmp1", "removedups.md5cache");
+            os.rename("tmp2", "removedups.md5headcache");
+        except:
+            status.error("Can't save cache file(s)")
+            printerror()
+            
 
 if __name__ == '__main__':
-	main()
+    main()
 
 # vim: ts=4 sw=4 nowrap noexpandtab
