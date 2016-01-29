@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import optparse
@@ -17,6 +19,7 @@ class StatmSampler:
         self.path   = '/proc/%s/statm' % self.pid
         self.count  = 0
         self.timestamp_fmt = '%Y-%m-%dT%H:%M:%S'
+        self.previous = None
 
 
     def run(self):
@@ -53,11 +56,22 @@ class StatmSampler:
             else:
                 raise e
 
-        timestamp = time.strftime(self.timestamp_fmt)
+        if not self.options.always:
+            if self.previous == stat:
+                return True
 
-        self.output.write('%s %s\n' % (timestamp, stat))
+            self.previous = stat
+
+        timestamp = time.strftime(self.timestamp_fmt)
+        line = '%s %s\n' % (timestamp, stat)
+
+        self.output.write(line)
         self.output.flush()
         self.count += 1
+
+        if self.options.echo:
+            sys.stdout.write(line)
+
         return True
 
 
@@ -84,7 +98,17 @@ def get_options(argv):
 
     parser.add_option(
         '-d', '--delay', dest='delay', default=1000, type='int',
-        help='Sampling frequency in milliseconds (default 1000ms)'
+        help='Sampling frequency in milliseconds (default: 1000ms)'
+    )
+
+    parser.add_option(
+        '-e', '--echo', action='store_true', default=False, dest='echo',
+        help='Print on the screen data saved to the file'
+    )
+
+    parser.add_option(
+        '-a', '--always', action='store_true', default=False, dest='always',
+        help='Save data even if nothing changed since last tick'
     )
 
     options, _ = parser.parse_args(argv)
@@ -97,7 +121,7 @@ def get_options(argv):
         options.output_name = '%s.statm' % options.pid
 
     if options.delay < 0.01:
-        raise ProgramError('Delay value must not be lass than 10ms')
+        raise ProgramError('Delay value must not be less than 10ms')
 
     return options
 
