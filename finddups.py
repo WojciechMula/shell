@@ -155,13 +155,15 @@ class Md5ShortCache(Md5Cache):
 
 
 def files_equal(path1, path2):
-    # assertion: size of files pointed by path1 and path2 are equal
+    # assertion: sizes of files pointed by path1 and path2 are equal
     bufsize = 4096
     with open(path1) as f1, open(path2) as f2:
-        if f1.read(bufsize) != f2.read(bufsize):
-            return False
-
-    return True
+		while True:
+			d1 = f1.read(bufsize)
+			if not d1:
+				return True
+			if d1 != f2.read(bufsize):
+				return False
 
 
 def main():
