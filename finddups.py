@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: iso-8859-2 -*-
-# $Id$
+# -*- coding: utf-8 -*-
 #
 # Find duplicated files. Just a list of duplicated is
 # created, no files are deleted, nor moved.
@@ -14,7 +13,7 @@
 # these files can by reused later, making comparision much
 # faster. However you are free to remove them.
 # 
-# Author: Wojciech Mu≥a
+# Author: Wojciech Mu≈Ça
 # e-mail: wojciech_mula@poczta.onet.pl
 # www:    http://0x80.pl/
 #
