@@ -7,12 +7,12 @@
 # Progam works in 3 steps: first group files of same size,
 # then group them by contents first 4kB, and finally calculate
 # md5 checksum for selected files.
-# 
+#
 # Program creates two files: removedups.md5cache and
 # removedups.md5headcache, which store calculated checksum;
 # these files can by reused later, making comparision much
 # faster. However you are free to remove them.
-# 
+#
 # Author: Wojciech Muła
 # e-mail: wojciech_mula@poczta.onet.pl
 # www:    http://0x80.pl/
@@ -81,11 +81,11 @@ def parse_args(args):
             parser.error("'%s' is not a directory" % dir)
         else:
             directories.append(dir)
-          
+
     if not directories:
         parser.print_help()
         raise SystemExit
-    
+
     return (options, directories)
 
 
@@ -119,7 +119,7 @@ class Md5Cache:
         sum = self.calc_sum(filename)
         self.cache[filename] = (file_mtime, sum)
         return sum
-        
+
     def calc_sum(self, filename):
         file    = open(filename, 'rb')
         bufsize = 8192
@@ -137,7 +137,7 @@ class Md5Cache:
         import pickle
         print("dumping to", filename)
         pickle.dump(self.cache, open(filename, "wb"), pickle.HIGHEST_PROTOCOL)
-    
+
     def load(self, filename):
         import pickle
         self.cache = pickle.load(open(filename, "rb"))
@@ -152,6 +152,16 @@ class Md5ShortCache(Md5Cache):
         sum.update(file.read(bufsize))
         file.close()
         return sum.digest()
+
+
+def files_equal(path1, path2):
+    # assertion: size of files pointed by path1 and path2 are equal
+    bufsize = 4096
+    with open(path1) as f1, open(path2) as f2:
+        if f1.read(bufsize) != f2.read(bufsize):
+            return False
+
+    return True
 
 
 def main():
@@ -198,7 +208,7 @@ def main():
 
         def error(self, string):
             sys.stderr.write(string + "\n")
-    
+
     status = Status(options.quiet)
 
     def printerror():
@@ -220,7 +230,7 @@ def main():
         except:
             status.error("Can't load md5cache file")
             printerror()
-        
+
         try:
             md5headcache.load("removedups.md5headcache")
         except KeyboardInterrupt:
@@ -269,66 +279,82 @@ def main():
                     dirs.extend(newdirs)
 
 
-        def group_by_first4kb(file_list):
-            dict = Dict()
+        def group_by_first4kb(file_groups):
+            result = []
 
-            for file in file_list:
-                status.write("read head of ", file)
-                try:
-                    head = md5headcache.get_sum(file)
+            for file_list in file_groups:
+                dict = Dict()
+                for file in file_list:
+                    status.write("read head of ", file)
+                    try:
+                        head = md5headcache.get_sum(file)
 
-                    dict[head] = file
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    printerror()
+                        dict[head] = file
+                    except KeyboardInterrupt:
+                        raise
+                    except:
+                        printerror()
 
-            return dict
+                result.extend(dict.values())
+
+            return result
 
 
-        def group_by_md5sum(file_list):
-            dict = Dict()
+        def group_by_md5sum(file_groups):
+            result = []
 
-            for file in file_list:
-                status.write("calc. MD5 of ", file)
-                try:
-                    sum = md5cache.get_sum(file)
-                    dict[sum] = file
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    printerror()
+            for file_list in file_groups:
+                dict = Dict()
 
-            return dict
+                for file in file_list:
+                    status.write("calc. MD5 of ", file)
+                    try:
+                        sum = md5cache.get_sum(file)
+                        dict[sum] = file
+                    except KeyboardInterrupt:
+                        raise
+                    except:
+                        printerror()
+
+                result.extend(dict.values())
+
+            return result
 
 
         def group_files(dict):
             duplicates = []
             unique     = []
 
-            total = float(len(dict))
-            for curr, (size, files) in enumerate(iter(dict.items())):
-                if size == 0:
-                    continue
+            group_by_functions = [
+                lambda x: x,    # initially files are grouped by size
+                group_by_first4kb,
+                group_by_md5sum
+            ]
 
-                status.progress = curr/total
-                if len(files) == 1:
-                    unique.append(files[0])
-                    continue
+            file_groups = dict.values()
 
-                dict1 = group_by_first4kb(files)
-                for _, files1 in dict1.items():
+            for group_by in group_by_functions:
+
+                file_groups = group_by(file_groups)
+
+                total = float(len(file_groups))
+                tmp   = []
+                for curr, files in enumerate(file_groups):
+                    status.progress = curr/total
                     if len(files) == 1:
-                        unique.append(files1[0])
-                        continue
-
-                    dict2 = group_by_md5sum(files1)
-                    for _, files2 in dict2.items():
-                        if len(files2) > 1:
-                            duplicates.append(files2)
+                        unique.append(files[0])
+                    elif len(files) == 2:
+                        if files_equal(files[0], files[1]):
+                            duplicates.append(files)
                         else:
-                            unique.append(files2[0])
-                    
+                            tmp.append(files)
+                    else:
+                        tmp.append(files)
+
+                file_groups = tmp
+
+            duplicates.extend(file_groups)
+
             return (unique, duplicates)
 
 
@@ -383,7 +409,7 @@ def main():
         except:
             status.error("Can't save cache file(s)")
             printerror()
-            
+
 
 if __name__ == '__main__':
     main()
