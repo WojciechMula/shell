@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: iso-8859-2 -*-
-# $Id$
+# -*- coding: utf-8 -*-
 # 
 # Make or compare list of files
 #
-# Author: Wojciech Mu≥a
+# Author: Wojciech Mu≈Ça
 # e-mail: wojciech_mula@poczta.onet.pl
 # www:    http://0x80.pl/
 #
