@@ -84,10 +84,14 @@ def help():
         
         make listing of all files - each file contains md5sum, size and filename
 
+    program sha directory
+        
+        make listing of all files - each file contains sha512, size and filename
+
     program cmp list1 list2
         
         compare two listings, prints file from list1 that do not exists in list2
-        or has different md5sum or size 
+        or has different checksum or size 
 """
 
 if __name__ == '__main__':
