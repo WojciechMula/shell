@@ -64,13 +64,17 @@ def compare(list1, list2, prefix, out):
 
 def getmd5sum(path):
     h = hashlib.md5()
-    h.update(open(path, 'rb').read())
+    with open(path, 'rb') as f:
+        h.update(f.read())
+
     return h.hexdigest()
 
 
 def getsha512sum(path):
     h = hashlib.sha512()
-    h.update(open(path, 'rb').read())
+    with open(path, 'rb') as f:
+        h.update(f.read())
+
     return h.hexdigest()
 
 
