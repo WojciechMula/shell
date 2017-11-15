@@ -29,7 +29,9 @@ def main(args):
 
     action = arg(1)
     if action in ['make', 'list', 'ls']:
-        make_list(arg(2), sys.stdout)
+        make_list(arg(2), sys.stdout, getmd5sum)
+    elif action in ['sha', 'sha512']:
+        make_list(arg(2), sys.stdout, getsha512sum)
     elif action in ['cmp', 'compare']:
         path1 = arg(2)
         path2 = arg(3)
@@ -42,14 +44,14 @@ def main(args):
         help()
 
 
-def make_list(root_directory, out):
+def make_list(root_directory, out, getchecksum):
     root_directory = os.path.normpath(os.path.abspath(root_directory))
     n = len(root_directory)
 
     for root, dirs, files in os.walk(root_directory):
         for file in files:
             path = join(root, file)
-            s = "%s %10d %s\n" % (getmd5sum(path), getsize(path), path[n:])
+            s = "%s %10d %s\n" % (getchecksum(path), getsize(path), path[n:])
             out.write(s)
     pass
 
@@ -62,6 +64,12 @@ def compare(list1, list2, prefix, out):
 
 def getmd5sum(path):
     h = hashlib.md5()
+    h.update(open(path, 'rb').read())
+    return h.hexdigest()
+
+
+def getsha512sum(path):
+    h = hashlib.sha512()
     h.update(open(path, 'rb').read())
     return h.hexdigest()
 
