@@ -1,0 +1,32 @@
+#!/bin/sh
+
+if [ $# -eq 0 ]
+then
+    echo "Usage: waitfor programname [delay]"
+    echo
+    echo "delay is given in seconds [default: 0.5s]"
+    exit 1
+fi
+
+programname="$1"
+shift
+
+if [ $# -ne 0 ]
+then
+    delay="$1"
+else
+    delay=0.5
+fi
+
+while true
+do
+    pid=`ps -C "${programname}" -o pid=`
+    if [ $? -eq 0 ]
+    then
+        echo ${pid}
+        exit
+    else
+        sleep ${delay}
+    fi
+done
+
