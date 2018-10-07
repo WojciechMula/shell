@@ -154,16 +154,14 @@ class Md5ShortCache(Md5Cache):
         return sum.digest()
 
 
-def files_equal(path1, path2):
-    # assertion: sizes of files pointed by path1 and path2 are equal
+def files_head_equal(path1, path2):
+    # assertion: size of files pointed by path1 and path2 are equal
     bufsize = 4096
     with open(path1) as f1, open(path2) as f2:
-		while True:
-			d1 = f1.read(bufsize)
-			if not d1:
-				return True
-			if d1 != f2.read(bufsize):
-				return False
+        if f1.read(bufsize) != f2.read(bufsize):
+            return False
+
+    return True
 
 
 def main():
@@ -280,7 +278,6 @@ def main():
                     del dirs[:]
                     dirs.extend(newdirs)
 
-
         def group_by_first4kb(file_groups):
             result = []
 
@@ -328,14 +325,14 @@ def main():
             unique     = []
 
             group_by_functions = [
-                lambda x: x,    # initially files are grouped by size
-                group_by_first4kb,
-                group_by_md5sum
+                (lambda x: x,       'group by size'),
+                (group_by_first4kb, 'group by first 4kB'),
+                (group_by_md5sum,   'group by MD5 sum'),
             ]
 
             file_groups = dict.values()
 
-            for group_by in group_by_functions:
+            for group_by, group_by_name in group_by_functions:
 
                 file_groups = group_by(file_groups)
 
@@ -343,10 +340,11 @@ def main():
                 tmp   = []
                 for curr, files in enumerate(file_groups):
                     status.progress = curr/total
+                    status.write(group_by_name)
                     if len(files) == 1:
                         unique.append(files[0])
                     elif len(files) == 2:
-                        if files_equal(files[0], files[1]):
+                        if files_head_equal(files[0], files[1]):
                             duplicates.append(files)
                         else:
                             tmp.append(files)
