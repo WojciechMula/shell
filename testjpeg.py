@@ -11,6 +11,7 @@ import os, sys
 from os.path import isdir, islink, exists, getsize, getmtime
 from os.path import abspath, dirname, normpath, join
 from hashlib import md5
+from time import sleep
 
 def parse_args(args):
     # define options
@@ -23,6 +24,8 @@ def parse_args(args):
                       help="exclude given files or patterns; you can pass as many options as you need")
     parser.add_option("-q", "--quiet", action="store_true", dest="quiet", default=False,
                       help="be quiet")
+    parser.add_option("-s", "--sleep", dest="delay", default=None,
+                      help="pause given seconds amount between checking each file")
     parser.add_option("--no-recursive", dest="no_recursive", action="store_true", default=False,
                       help="do not go deeper")
     parser.add_option("--keep", action="store_false", dest="overwrite", default=True,
@@ -44,6 +47,9 @@ def parse_args(args):
 
     if options.exclude is None:
         options.exclude = []
+
+    if options.delay is not None:
+        options.delay = float(options.delay)
 
     tmp = set()
     directories = []
@@ -123,7 +129,7 @@ def main():
 
     with open(options.log_file, 'wt') as log:
         list = scan_directories(directories, options, status)
-        broken = check_files(list, status)
+        broken = check_files(list, status, options)
         for path in broken:
             log.write(path)
             log.write('\n')
@@ -184,7 +190,7 @@ def format_time(seconds):
         return '%02d:%02d:%02d' % (h, m, s)
     
 
-def check_files(files, status):
+def check_files(files, status, options):
     from time import time
     total  = len(files)
     errors = 0
@@ -198,13 +204,17 @@ def check_files(files, status):
         EET = format_time(((now - start) * total)/float(index + 1))
         status.write("[%d/%d][E:%d][%s %s] checking: " % (index + 1, total, errors, ETA, EET), file)
         if not check_file(path):
+            print "Wrong JPEG or not a JPEG file: ", path
             list.append(path)
             errors = len(list)
     
+        if options.delay:
+            sleep(options.delay)
+
     return list
 
 
 if __name__ == '__main__':
     main()
 
-# vim: ts=4 sw=4 nowrap noexpandtab
+# vim: ts=4 sw=4 nowrap
