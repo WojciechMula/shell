@@ -235,9 +235,9 @@ def help(ret=0):
         """
         usage: program M directory1 directory2
 
-         M is method of compare result presentation:"
-         d - print simple description"
-         s - print shell script that makes mirrof of dir1 in dir2"
+         M is method of compare result presentation:
+         d - print simple description
+         s - print shell script that makes mirr of of dir1 in dir2
         """
     )
     sys.exit(ret)
