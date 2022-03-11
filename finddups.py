@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Find duplicated files. Just a list of duplicated is
@@ -157,7 +157,7 @@ class Md5ShortCache(Md5Cache):
 def files_head_equal(path1, path2):
     # assertion: size of files pointed by path1 and path2 are equal
     bufsize = 4096
-    with open(path1) as f1, open(path2) as f2:
+    with open(path1, 'rb') as f1, open(path2, 'rb') as f2:
         if f1.read(bufsize) != f2.read(bufsize):
             return False
 
@@ -392,7 +392,6 @@ def main():
                 else:
                     log.write("\n")
 
-        log.close()
         status.write("\n")
 
     except KeyboardInterrupt:
@@ -409,6 +408,8 @@ def main():
         except:
             status.error("Can't save cache file(s)")
             printerror()
+
+    log.close()
 
 
 if __name__ == '__main__':
