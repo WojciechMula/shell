@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # 
 # Make or compare list of files
@@ -79,7 +79,7 @@ def getsha512sum(path):
 
 
 def help():
-    print """
+    print("""
     program ls directory
         
         make listing of all files - each file contains md5sum, size and filename
@@ -92,7 +92,7 @@ def help():
         
         compare two listings, prints file from list1 that do not exists in list2
         or has different checksum or size 
-"""
+    """)
 
 if __name__ == '__main__':
     main(sys.argv)
