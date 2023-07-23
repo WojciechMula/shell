@@ -13,6 +13,7 @@ import os
 import os.path
 import hashlib
 import sys
+import concurrent.futures
 
 from os.path import join, getsize
 
@@ -48,12 +49,18 @@ def make_list(root_directory, out, getchecksum):
     root_directory = os.path.normpath(os.path.abspath(root_directory))
     n = len(root_directory)
 
-    for root, dirs, files in os.walk(root_directory):
-        for file in files:
-            path = join(root, file)
-            s = "%s %10d %s\n" % (getchecksum(path), getsize(path), path[n:])
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        checksums = []
+        for root, dirs, files in os.walk(root_directory):
+            for file in files:
+                path = join(root, file)
+                future = executor.submit(getchecksum, path)
+                checksums.append((path, future))
+
+        for path, future in checksums:
+            checksum = future.result()
+            s = "%s %10d %s\n" % (checksum, getsize(path), path[n:])
             out.write(s)
-    pass
 
 
 def compare(list1, list2, prefix, out):
@@ -96,5 +103,3 @@ def help():
 
 if __name__ == '__main__':
     main(sys.argv)
-
-# eof
