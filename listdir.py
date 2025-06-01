@@ -30,8 +30,6 @@ def main(args):
 
     action = arg(1)
     if action in ['make', 'list', 'ls']:
-        make_list(arg(2), sys.stdout, getmd5sum)
-    elif action in ['sha', 'sha512']:
         make_list(arg(2), sys.stdout, getsha512sum)
     elif action in ['cmp', 'compare']:
         path1 = arg(2)
@@ -69,14 +67,6 @@ def compare(list1, list2, prefix, out):
         out.write(s + "\n")
 
 
-def getmd5sum(path):
-    h = hashlib.md5()
-    with open(path, 'rb') as f:
-        h.update(f.read())
-
-    return h.hexdigest()
-
-
 def getsha512sum(path):
     h = hashlib.sha512()
     with open(path, 'rb') as f:
@@ -88,15 +78,11 @@ def getsha512sum(path):
 def help():
     print("""
     program ls directory
-        
-        make listing of all files - each file contains md5sum, size and filename
 
-    program sha directory
-        
         make listing of all files - each file contains sha512, size and filename
 
     program cmp list1 list2
-        
+
         compare two listings, prints file from list1 that do not exists in list2
         or has different checksum or size 
     """)
