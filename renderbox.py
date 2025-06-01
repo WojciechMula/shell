@@ -33,6 +33,9 @@ def parse_args():
                     type=int)
     ap.add_argument("fields",
                     nargs='+')
+    ap.add_argument("--center",
+                    default=False,
+                    action='store_true')
 
     args = ap.parse_args()
     if args.count is None:
@@ -40,7 +43,10 @@ def parse_args():
 
     if args.width is not None:
         for i in range(len(args.fields)):
-            args.fields[i] = '%*s' % (args.width, args.fields[i])
+            if args.center:
+                args.fields[i] = args.fields[i].center(args.width)
+            else:
+                args.fields[i] = '%*s' % (args.width, args.fields[i])
 
     while args.count > len(args.fields):
         if args.width is None:
