@@ -24,6 +24,7 @@ import os, sys
 from os.path import isdir, islink, exists, getsize, getmtime
 from os.path import abspath, dirname, normpath, join
 from hashlib import md5
+from pathlib import Path
 
 def parse_args(args):
     # define options
@@ -42,8 +43,6 @@ def parse_args(args):
                       help="quote paths with \" if contain space")
     parser.add_option("-a", "--abs-path", action="store_true", dest="abspath", default=False,
                       help="save absolute paths")
-    parser.add_option("--no-cache", action="store_false", dest="use_cache", default=True,
-                      help="do not create any temporary files for cache")
     parser.add_option("-e", "--exclude", action="append", dest="exclude",
                       help="exclude given files or patterns; you can pass as many options as you need")
     parser.add_option("-Q", "--quiet", action="store_true", dest="quiet", default=False,
@@ -135,7 +134,6 @@ class Md5Cache:
 
     def save(self, filename):
         import pickle
-        print("dumping to", filename)
         pickle.dump(self.cache, open(filename, "wb"), pickle.HIGHEST_PROTOCOL)
 
     def load(self, filename):
@@ -222,44 +220,48 @@ def main():
     # load md5cache
     md5cache = Md5Cache()
     md5headcache = Md5ShortCache()
-    if options.use_cache:
-        try:
-            md5cache.load("removedups.md5cache")
-        except KeyboardInterrupt:
-            raise
-        except:
-            status.error("Can't load md5cache file")
-            printerror()
+    configroot = Path.home() / ".local" / "share" / "finddups.py"
+    configroot.mkdir(parents=True, exist_ok=True)
+    md5cache_path = configroot / "md5cache.pickle"
+    md5headcache_path = configroot / "md5headcache.pickle"
+    try:
+        md5cache.load(md5cache_path)
+    except KeyboardInterrupt:
+        raise
+    except:
+        status.error(f"Can't load {md5cache_path} file")
+        printerror()
 
-        try:
-            md5headcache.load("removedups.md5headcache")
-        except KeyboardInterrupt:
-            raise
-        except:
-            status.error("Can't load md5headcache file")
-            printerror()
+    try:
+        md5headcache.load(md5headcache_path)
+    except KeyboardInterrupt:
+        raise
+    except:
+        status.error(f"Can't load {md5headcache_path} file")
+        printerror()
 
 
     try:
         # Scanning directories
 
-        def match(filename):
-            from fnmatch import fnmatch
+        if options.exclude:
+            def match(filename):
+                from fnmatch import fnmatch
 
-            for pattern in options.exclude:
-                if fnmatch(filename, pattern):
-                    return False
-            else:
+                for pattern in options.exclude:
+                    if fnmatch(filename, pattern):
+                        return False
+
                 return True
+        else:
+            match = lambda _: False
 
         d = Dict()
         for directory in directories:
             for root, dirs, files in os.walk(directory):
                 status.write("Scanning: ", root)
-                for file in files:
-                    if not match(file):     # exclude files
-                        continue
 
+                for file in files:
                     path = join(root, file)
                     if not islink(path):    # do not consider links
                         try:
@@ -367,10 +369,7 @@ def main():
 
         if options.quote:
             def quote(string):
-                if " " in string:
-                    return '"' + string + '"'
-                else:
-                    return string
+                return '"' + string + '"'
         else:
             def quote(string):
                 return string
@@ -399,15 +398,12 @@ def main():
     except:
         printerror()
 
-    if options.use_cache:
-        try:
-            md5cache.save("tmp1")
-            md5headcache.save("tmp2")
-            os.rename("tmp1", "removedups.md5cache");
-            os.rename("tmp2", "removedups.md5headcache");
-        except:
-            status.error("Can't save cache file(s)")
-            printerror()
+    try:
+        md5cache.save(md5cache_path)
+        md5headcache.save(md5headcache_path)
+    except:
+        status.error("Can't save cache file(s)")
+        printerror()
 
     log.close()
 
@@ -415,4 +411,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-# vim: ts=4 sw=4 nowrap noexpandtab
+# vim: ts=4 sw=4 nowrap
